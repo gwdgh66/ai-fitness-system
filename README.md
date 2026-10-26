@@ -190,3 +190,61 @@ npm run build      # vue-tsc --noEmit && vite build
 ```
 
 > 测试使用**一次性用户**并在结束时清理自己产生的数据；`AdvancedModulesTest` 里有一个用例会以 `userId=1` 重新播种演示数据（属预期行为）。
+
+---
+
+## 八、推送到 GitHub（安全清单）
+
+### 8.1 密钥在哪里配置 —— 项目里**没有任何**密钥
+
+| 环境变量 | 用途 | 代码里的默认值 | 说明 |
+|---|---|---|---|
+| `LLM_API_KEY` | 大模型 API Key（AI 对话 / 排课 / RAG 必需） | `sk-your-api-key`（占位符） | 不配也能启动，只是 AI 接口返回鉴权错误 |
+| `MYSQL_HOST` / `MYSQL_USER` / `MYSQL_PWD` | 数据库连接 | `localhost` / `root` / `123456` | 默认值仅供本地开发 |
+| `REDIS_HOST` / `REDIS_PWD` | Redis 连接 | `localhost` / 空 | |
+| `LLM_BASE_URL` / `LLM_MODEL_NAME` | 大模型地址与模型名 | `https://api.deepseek.com/v1` / `deepseek-chat` | 换兼容 OpenAI 协议的模型即可 |
+
+后端只在 `backend/src/main/resources/application.yml` 里以 `${LLM_API_KEY:...}` 的形式**引用**环境变量，
+**真实密钥永远不写进文件**，因此换 key 不需要改动任何代码或提交。
+
+给 AI 功能配 key（三选一）：
+
+```powershell
+# ① 只在当前终端有效
+$env:LLM_API_KEY = 'sk-...'
+
+# ② 持久化（推荐）：之后新开的终端自动带上，密钥不落盘在项目里
+setx LLM_API_KEY "sk-..."
+
+# ③ IntelliJ IDEA：Run → Edit Configurations → Environment variables → LLM_API_KEY=sk-...
+```
+
+### 8.2 推送前的自检（3 条命令，应全部“无输出/只有占位符”）
+
+```bash
+git grep -n -I -E "sk-[A-Za-z0-9_-]{20,}"                                  # 期望：无输出
+git grep -n -I "api-key" -- backend/src/main/resources/application.yml     # 期望：只有 ${LLM_API_KEY:sk-your-api-key}
+git status --short                                                          # 期望：不含 node_modules / target / .idea / *.log
+```
+
+仓库已配好：
+
+- **`.gitignore`** —— 忽略 `node_modules/`、`backend/target/`、`frontend/dist/`、`.idea/`、`.npm-cache/`、
+  `frontend/.tmp/`、`*.log`、`.agents/`、`acl-recovery/`、`frontend/.npmrc`（本机绝对路径缓存）、
+  以及 `.env` / `*.local.yml` / `*.pem` / `*.key` 等敏感文件；
+  **保留** `.run/`（IDEA 运行配置，无密钥，方便别人直接用）。
+- **`.gitattributes`** —— 统一换行符，并强制 `mvnw` / `*.sh` 使用 LF（否则 Linux/macOS 克隆后无法执行）。
+
+### 8.3 创建远程仓库并推送
+
+```bash
+git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+git branch -M main
+git push -u origin main
+```
+
+### 8.4 ⚠️ 上架前必做：轮换 API Key
+
+即使仓库里没有密钥，`LLM_API_KEY` 也曾出现在你我的对话上下文与本地命令行里 —— 应视为**已暴露**。
+请去 DeepSeek 控制台**吊销旧 Key 并新建一个**，然后只需更新环境变量（`setx LLM_API_KEY "新Key"`）
+或 IDEA 运行配置即可，**不需要改任何代码、不需要重新提交**。
