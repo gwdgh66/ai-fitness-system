@@ -10,11 +10,10 @@
       4) 启动前端 Vite
     每一步都会先探测是否已经在运行，可以重复执行（幂等）。
 
-    后端与前端会在「独立的新窗口」中运行，方便你直接看日志。
+    后端与前端会在「独立的新窗口」中运行，便于直接在窗口里查看日志。
 
-    编码说明：本文件必须保存为「UTF-8 带 BOM」。本机只装了 Windows PowerShell 5.1
-    （pwsh 不在 PATH 中），而 5.1 读取无 BOM 的 UTF-8 文件时会按 GBK 解析，中文会乱码并
-    导致语法错误。用编辑器改动本文件后，请确认仍以「UTF-8 with BOM」保存。
+    编码说明：本文件以「UTF-8 带 BOM」保存。Windows PowerShell 5.1 读取无 BOM 的 UTF-8 文件时
+    会按本地代码页（中文系统为 GBK）解析，导致中文乱码与语法错误；用编辑器改动本文件后请保持该编码。
 
 .PARAMETER Stop
     停止后端与前端（按端口 8080 / 5173 定位进程）。Redis 容器默认保留。
@@ -23,7 +22,7 @@
     配合 -Stop 使用：同时停止 Redis 容器。
 
 .PARAMETER SkipRedis
-    Redis 已经在跑（或你用了别的实例）时跳过 Docker 步骤。
+    Redis 已经在跑（或使用其他 Redis 实例）时跳过 Docker 步骤。
 
 .PARAMETER NoWait
     只负责拉起进程，不等待就绪探测。
@@ -42,13 +41,13 @@
     停止后端与前端。
 
 .NOTES
-    推荐入口是同级目录的 start-all.cmd（它用 -ExecutionPolicy Bypass 绕过本机
-    「禁止运行脚本」的策略限制，且不需要修改系统设置）。
+    推荐入口是同级目录的 start-all.cmd（它用 -ExecutionPolicy Bypass 绕过 Windows 默认的
+    「禁止运行脚本」策略限制，且不需要修改系统设置）。
 
     LLM_API_KEY：优先读取环境变量；没有则交互式询问（不会写入任何文件）。
-    想一劳永逸，可在普通 PowerShell 里执行一次：
-        setx LLM_API_KEY "你的-DeepSeek-API-Key"
-    之后新开的终端就自带该变量。
+    如需持久化，可在普通 PowerShell 里执行一次：
+        setx LLM_API_KEY "sk-xxxxxxxxxxxxxxxx"
+    之后新开的终端会自动携带该变量。
 #>
 [CmdletBinding()]
 param(
@@ -63,7 +62,7 @@ $ErrorActionPreference = 'Continue'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 # ------------------------------------------------------------------
-# 可调参数：与本机实际路径保持一致
+# 可调参数：按实际环境修改以下路径
 # ------------------------------------------------------------------
 $Root         = 'D:\jsgl'
 $BackendDir   = Join-Path $Root 'backend'

@@ -205,10 +205,10 @@ start-all.cmd -Stop              :: 停后端 + 前端
 start-all.cmd -Stop -StopRedis   :: 连 Redis 容器一起停
 ```
 
-> **为什么发的是 `.cmd` 而不是 `.ps1`？** 本机 PowerShell 执行策略禁止运行脚本，直接跑 `.ps1` 会报 `UnauthorizedAccess`；`start-all.cmd` 用 `-ExecutionPolicy Bypass` 仅对本次调用放行，**不修改系统设置**。
-> 也可手动：`powershell -NoProfile -ExecutionPolicy Bypass -File .\start-all.ps1`
+> **为什么发的是 `.cmd` 而不是 `.ps1`？** Windows 默认的 PowerShell 执行策略通常禁止运行脚本，直接运行 `.ps1` 会报 `UnauthorizedAccess`；`start-all.cmd` 内部用 `-ExecutionPolicy Bypass`，**仅对本次调用放行，不修改系统设置**。
+> 也可手动执行：`powershell -NoProfile -ExecutionPolicy Bypass -File .\start-all.ps1`
 
-> **两个本机陷阱（脚本已自动处理）**：① 机器上只有 Windows PowerShell 5.1，它读取**无 BOM** 的 UTF-8 脚本会按 GBK 解析 → 中文乱码 + 语法错误，故 `start-all.ps1` 必须存为 **UTF-8 with BOM**；② 用户级 `JAVA_HOME` 可能指向 JDK 11，而本项目需要 **Java 21**，脚本会强制覆盖。
+> **两个 Windows 环境注意点（脚本已自动处理）**：① PowerShell 5.1 读取**无 BOM** 的 UTF-8 脚本时会按本地代码页（中文系统为 GBK）解析 → 中文乱码与语法错误，因此 `start-all.ps1` 以 **UTF-8 with BOM** 保存，用编辑器改动后请保持该编码；② 脚本会强制把 `JAVA_HOME` 指向 JDK 21，避免机器上存在多个 JDK 时误用旧版本。
 
 ### 方式二：IntelliJ IDEA
 
@@ -222,7 +222,7 @@ start-all.cmd -Stop -StopRedis   :: 连 Redis 容器一起停
 
 操作三步：
 
-1. **确认 JDK 21**：`File → Project Structure → Project`，SDK 选 21（指向本机 JDK 21）。
+1. **确认 JDK 21**：`File → Project Structure → Project`，SDK 选 21（指向 JDK 21 安装目录）。
 2. **若未自动加载 Maven**：右键根目录 `pom.xml` → **Add as Maven Project**（或 Maven 面板点 ⟳）。
 3. **配置 `LLM_API_KEY`**：`setx LLM_API_KEY "sk-..."` 后重启 IDEA（运行配置继承系统环境变量，密钥不写进仓库），或在 `Run → Edit Configurations → Environment variables` 里填。
 
@@ -237,7 +237,7 @@ docker exec fitness-redis redis-cli ping          # 期望 PONG
 
 # ② 后端（新窗口）
 cd backend
-$env:JAVA_HOME = '<你的 JDK 21 目录>'
+$env:JAVA_HOME = '<JDK 21 安装目录>'
 $env:LLM_API_KEY = 'sk-...'
 .\mvnw.cmd spring-boot:run                        # 看到 Started FitnessAiApplication 即成功
 
@@ -251,7 +251,7 @@ npm run dev
 
 ### 演示数据
 
-数据看板的「**一键播种演示数据**」会以当天为终点重建 14 天训练记录与 7 天饮食账单，并确保演示伤病（`LEFT_SHOULDER` ACTIVE）存在；你自己创建的自定义动作 / 套餐不会被删除。
+数据看板的「**一键播种演示数据**」会以当天为终点重建 14 天训练记录与 7 天饮食账单，并确保演示伤病（`LEFT_SHOULDER` ACTIVE）存在；自行创建的自定义动作 / 套餐不会被删除。
 
 > ⚠️ 数字孪生页的「标记为已恢复」会让**整套伤病护栏演示失效**（安全动作库从 16 个放开到全部 28 个，模板不再跳槽位、AI 换动作不再受限、手动选禁忌动作也不会被拦截）。恢复方式：再点一次「一键播种演示数据」，或重新登记一次该部位不适（恢复后再登记会新增记录，历史不会被覆盖）。
 
@@ -289,7 +289,7 @@ D:\jsgl
 
 ```powershell
 cd backend
-$env:JAVA_HOME = '<你的 JDK 21 目录>'
+$env:JAVA_HOME = '<JDK 21 安装目录>'
 $env:LLM_API_KEY = 'sk-...'      # Agent / RAG / 结构化排课用例需要真实大模型
 .\mvnw.cmd test                  # 8 个测试类 / 36 个用例
 ```
@@ -320,7 +320,7 @@ npm run build                    # vue-tsc --noEmit && vite build
 
 `application.yml` 只以 `${LLM_API_KEY:...}` 形式**引用**环境变量，因此**换 Key 不需要改任何代码或提交**。
 
-推送前自检（三条命令，应"无输出 / 只有占位符"）：
+密钥自检（任何时候都可以运行这三条命令，确认仓库内容里不含密钥）：
 
 ```bash
 git grep -n -I -E "sk-[A-Za-z0-9_-]{20,}"                               # 期望：无输出

@@ -5,7 +5,8 @@
 #      LLM_API_KEY   大模型 API Key（application.yml 里只有占位符 sk-your-api-key）
 #      MYSQL_PWD     MySQL 密码（application.yml 默认 123456，仅本地开发用）
 #      REDIS_PWD     Redis 密码（默认空）
-#  推送前请务必确认：`git ls-files` 的输出里不含任何密钥。
+#  安全提示：本项目所有密钥都通过「环境变量」注入，被跟踪的文件里不含任何密钥；
+#  可用 `git ls-files` 随时确认这一点。
 # ==========================================================================
 
 # ---------- 密钥 / 本地私有配置 ----------
@@ -39,7 +40,7 @@ frontend/.vite/
 frontend/.tmp/
 npm-debug.log*
 yarn-error.log*
-# 本机专用：里面写的是绝对路径缓存目录（cache=D:/jsgl/.npm-cache），不该共享
+# 该文件记录的是本地绝对路径缓存目录（cache=...），不适合共享
 frontend/.npmrc
 
 # ---------- 包管理器缓存 ----------
@@ -59,6 +60,6 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# ---------- 仅本机存在的工具产物（不属于项目源码）----------
+# ---------- 本地工具产物（不属于项目源码）----------
 .agents/
 acl-recovery/
