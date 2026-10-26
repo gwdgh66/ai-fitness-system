@@ -188,7 +188,26 @@ BM25 与 TF-IDF 加权融合 + 领域关键词加成，返回 `score / bm25 / co
 | 前端 | Vite 6 | **`http://localhost:5173`** | **是** |
 
 > ⚠️ 访问前端必须用 **`localhost`**，不要用 `127.0.0.1` —— Vite 只绑定了 IPv6 `[::1]`。
-> 首次运行前请先建库并导入 `backend/src/main/resources/sql/schema.sql` 与 `data.sql`。
+
+#### 首次运行：初始化数据库
+
+Spring Boot **不会**自动执行建表脚本，首次运行前手动导入这两条命令即可：
+
+```bash
+# schema.sql 自带 CREATE DATABASE IF NOT EXISTS fitness_ai，无需提前建库
+mysql -h 127.0.0.1 -P 3306 -u root -p < backend/src/main/resources/sql/schema.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p < backend/src/main/resources/sql/data.sql
+```
+
+| 脚本 | 内容 | 可否重复执行 |
+|---|---|---|
+| `schema.sql` | 建库 + 11 张业务表 DDL | ⚠️ 含 `DROP TABLE IF EXISTS`，**会清空已有业务数据** |
+| `data.sql` | 仅种子数据：默认用户档案 1 条 + 演示伤病 1 条 + 动作字典 27 条 + 食物营养字典 27 条 + 示例套餐 2 条 | ✅ 全部 `INSERT IGNORE`，可重复执行 |
+
+> **关于用户数据**：`workout_plan` / `workout_plan_item` / `workout_log` / `daily_macro_target` / `diet_log` / `tool_audit_log`
+> 等属于**使用过程中产生的业务流水，刻意不纳入版本库**。因此新环境导入后这些表是空的：
+> 数字孪生页有档案、动作库有 27 个动作、食物字典与示例套餐可用，但看板图表与打卡/饮食流水为空 ——
+> 在数据看板点一次「**一键播种演示数据**」即可生成 14 天训练 + 7 天饮食的完整演示数据。
 
 ### 方式一：一键启动（推荐）
 
