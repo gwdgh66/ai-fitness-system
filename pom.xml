@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    聚合（aggregator）POM —— 唯一目的是让 IDE 能识别本仓库的 Maven 结构。
+
+    背景：真正的后端工程在 backend/ 目录（backend/pom.xml）。如果不加这个文件，
+    用 IntelliJ IDEA 打开仓库根目录 D:\jsgl 时，IDEA 只会把它当成一个普通文件夹 /
+    空 Java 模块，没有 Maven 模型、没有依赖、也没有 Spring Boot 运行支持，
+    所有 Java 文件都会处于「无法编译/无法运行」的状态。
+
+    有了它：IDEA 打开 D:\jsgl 会检测到根目录的 Maven 工程，自动导入 backend 模块
+    （artifactId = fitness-ai-backend），从 backend/pom.xml 解析全部依赖。
+
+    注意：
+      * 这里只做「聚合」，不让 backend 继承本文件 —— backend 的 parent 必须保持
+        spring-boot-starter-parent，否则 Spring Boot 的依赖管理会失效。
+      * 前端（frontend/）是独立的 npm 工程，不由 Maven 管理。
+      * 命令行构建仍以 backend 为准：cd backend && mvnw.cmd spring-boot:run
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.fitness</groupId>
+    <artifactId>fitness-ai-system</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Personal AI Fitness System</name>
+    <description>个人 AI 健身系统（聚合工程，供 IDE 识别；后端模块位于 backend/）</description>
+
+    <modules>
+        <module>backend</module>
+    </modules>
+</project>

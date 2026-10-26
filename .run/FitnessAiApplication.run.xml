@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FitnessAiApplication (backend)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="fitness-ai-backend" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.fitness.ai.FitnessAiApplication" />
+    <option name="UPDATE_ACTION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

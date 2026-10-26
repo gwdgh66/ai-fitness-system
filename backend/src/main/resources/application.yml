@@ -1,0 +1,87 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: fitness-ai-backend
+
+  # Java 21 虚拟线程：Tomcat 请求处理与 @Async 统一走虚拟线程
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/fitness_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:123456}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      database: 0
+      password: ${REDIS_PWD:}
+      timeout: 5s
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 0
+          max-wait: 3s
+
+# MyBatis-Plus：驼峰映射 + 控制台 SQL 日志
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: assign_id
+
+# LangChain4j：OpenAI 兼容协议模型（DeepSeek / 通义千问等）
+# 注意：chat-model 与 streaming-chat-model 是两套独立配置，必须分别填写。
+# 只配 chat-model 时，starter 不会创建 openAiStreamingChatModel Bean，
+# @AiService 的 streamingChatModel 装配会直接失败（SSE 流式接口无法工作）。
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+      api-key: ${LLM_API_KEY:sk-your-api-key}
+      model-name: ${LLM_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+    streaming-chat-model:
+      base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+      api-key: ${LLM_API_KEY:sk-your-api-key}
+      model-name: ${LLM_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+
+# Knife4j / OpenAPI 文档
+# enable 关闭的原因：knife4j 4.5.0 的 Knife4jOpenApiCustomizer 与 Spring Boot 3.5 所需的
+# springdoc 2.8.x 二进制不兼容（调用被改签名的 SpringDocConfigProperties#getGroupConfigs），
+# 开启会让 /v3/api-docs 直接 500。关闭后由 springdoc 2.8.x 正常产出文档，
+# /doc.html 仍可访问（knife4j 静态 UI 仍在 classpath 中）。
+knife4j:
+  enable: false
+  setting:
+    language: zh_cn
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.fitness.ai: debug

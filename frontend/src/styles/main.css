@@ -1,0 +1,219 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Base —— 全局基线（见 design-system/MASTER.md §2/§3/§6）
+   ========================================================================== */
+@layer base {
+  :root {
+    color-scheme: dark;
+    --bg-obsidian: #090a0f;
+    --bg-surface: #12151e;
+    --bg-elevated: #1a1f2e;
+    --acid-lime: #ccff00;
+    --signal-orange: #ff5e36;
+    --signal-cyan: #00e5ff;
+    --signal-coral: #ff3366;
+    --hairline: rgba(255, 255, 255, 0.07);
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-obsidian);
+    color: #f4f6fa;
+    font-family: Outfit, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 键盘可达性：全站统一酸橙绿聚焦光环 */
+  :focus-visible {
+    outline: 2px solid var(--acid-lime);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: rgba(204, 255, 0, 0.28);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+    background-clip: content-box;
+  }
+
+  /* 唯一编排动效之外的所有动画都必须可被关闭（MASTER.md §6） */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Components —— 卡片 / 徽章 / 按钮 / 表单
+   ========================================================================== */
+@layer components {
+  /* Bento 磁贴：靠「边框亮度 + 背景明度」分层，不使用彩色阴影 */
+  .tile {
+    @apply relative rounded-tile border border-hairline;
+    background-color: rgba(18, 21, 30, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .tile-interactive {
+    @apply cursor-pointer transition duration-200 ease-kinetic;
+  }
+  .tile-interactive:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    background-color: rgba(26, 31, 46, 0.78);
+    transform: translateY(-2px);
+  }
+
+  /* 大数字读数：Barlow Condensed + 等宽数字（MASTER.md §3.3） */
+  .readout {
+    font-family: 'Barlow Condensed', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 text-xs font-medium;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition duration-200 ease-kinetic disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .btn-primary {
+    @apply btn;
+    background-color: var(--acid-lime);
+    color: #090a0f;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: #d9ff3d;
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-ghost {
+    @apply btn border border-hairline text-ink-secondary;
+    background-color: transparent;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #f4f6fa;
+  }
+
+  .btn-danger-outline {
+    @apply btn border;
+    border-color: rgba(255, 51, 102, 0.45);
+    color: #ff3366;
+    background-color: transparent;
+  }
+  .btn-danger-outline:hover:not(:disabled) {
+    border-color: #ff3366;
+    background-color: rgba(255, 51, 102, 0.08);
+  }
+
+  .icon-btn {
+    @apply inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-chip border border-transparent text-ink-secondary transition duration-200 ease-kinetic;
+  }
+  .icon-btn:hover {
+    background-color: rgba(26, 31, 46, 0.9);
+    color: #f4f6fa;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-xs font-medium text-ink-secondary;
+  }
+
+  .field-input {
+    @apply w-full rounded-chip border border-hairline bg-obsidian/60 px-3 py-2.5 text-sm text-ink-primary transition duration-200 ease-kinetic;
+    font-variant-numeric: tabular-nums;
+  }
+  .field-input:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .field-input:focus {
+    border-color: rgba(204, 255, 0, 0.5);
+    outline: none;
+  }
+
+  /* 细分隔线：结构性信息，不是装饰 */
+  .hairline {
+    border-color: rgba(255, 255, 255, 0.07);
+  }
+
+  /* 骨架屏（保留空间，避免 CLS） */
+  .skeleton {
+    @apply rounded-chip;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 37%, rgba(255, 255, 255, 0.04) 63%);
+    background-size: 400% 100%;
+    animation: skeleton 1.4s ease infinite;
+  }
+
+  @keyframes skeleton {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+@layer utilities {
+  .grid-bento {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (min-width: 768px) {
+    .grid-bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .grid-bento {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+  }
+}

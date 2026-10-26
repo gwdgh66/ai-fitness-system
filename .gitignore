@@ -1,0 +1,64 @@
+# ==========================================================================
+#  .gitignore —— 个人 AI 健身系统
+#
+#  安全前提：本项目所有密钥都通过「环境变量」注入，任何文件里都不写真实密钥。
+#      LLM_API_KEY   大模型 API Key（application.yml 里只有占位符 sk-your-api-key）
+#      MYSQL_PWD     MySQL 密码（application.yml 默认 123456，仅本地开发用）
+#      REDIS_PWD     Redis 密码（默认空）
+#  推送前请务必确认：`git ls-files` 的输出里不含任何密钥。
+# ==========================================================================
+
+# ---------- 密钥 / 本地私有配置 ----------
+.env
+.env.*
+!.env.example
+*.local.yml
+*.local.yaml
+application-local.yml
+application-local.yaml
+application-secret.yml
+*.pem
+*.key
+*.p12
+*.jks
+secrets.properties
+
+# ---------- 后端构建产物与日志 ----------
+backend/target/
+backend/logs/
+target/
+*.log
+*.log.*
+hs_err_pid*.log
+replay_pid*.log
+
+# ---------- 前端构建产物与依赖 ----------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.tmp/
+npm-debug.log*
+yarn-error.log*
+# 本机专用：里面写的是绝对路径缓存目录（cache=D:/jsgl/.npm-cache），不该共享
+frontend/.npmrc
+
+# ---------- 包管理器缓存 ----------
+.npm-cache/
+.pnpm-store/
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/
+
+# ---------- 操作系统 ----------
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---------- 仅本机存在的工具产物（不属于项目源码）----------
+.agents/
+acl-recovery/

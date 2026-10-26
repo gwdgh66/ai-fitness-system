@@ -1,0 +1,20 @@
+# 统一换行符，避免 Windows 提交后 Linux/macOS 克隆出现 CRLF 问题
+* text=auto
+
+# Shell 脚本必须保持 LF，否则在 Linux/macOS/WSL 下会报 "$'\r': command not found"
+*.sh  text eol=lf
+mvnw  text eol=lf
+
+# Windows 专用脚本保持 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不做换行转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
