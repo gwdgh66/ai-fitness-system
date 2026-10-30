@@ -8,11 +8,13 @@ import com.fitness.ai.nutrition.entity.DietLog;
 import com.fitness.ai.nutrition.entity.FoodNutritionDict;
 import com.fitness.ai.nutrition.service.NutritionService;
 import com.fitness.ai.nutrition.vo.DailyNutritionSummaryVO;
+import com.fitness.ai.nutrition.vo.DietLogClearVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,6 +56,15 @@ public class NutritionController {
     @PostMapping("/logs")
     public Result<DietLog> addDietLog(@Valid @RequestBody DietLogCreateDTO dto) {
         return Result.success(nutritionService.addDietLog(dto));
+    }
+
+    @Operation(summary = "清空某日饮食流水",
+            description = "只删除该用户在该日期的饮食打卡，不影响其它日期与其它用户；date 省略默认今天，便于清除演示/试录数据")
+    @DeleteMapping("/logs")
+    public Result<DietLogClearVO> clearDietLogs(
+            @RequestParam Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return Result.success(nutritionService.clearDietLogs(userId, date));
     }
 
     @Operation(summary = "查询每日营养账单汇总", description = "返回目标值、已摄入、剩余缺口与流水明细；date 省略时默认今天")

@@ -16,7 +16,9 @@ import com.fitness.ai.dashboard.vo.DemoSeedResultVO;
 import com.fitness.ai.dashboard.vo.MuscleVolumeVO;
 import com.fitness.ai.dashboard.vo.NutritionTrendVO;
 import com.fitness.ai.dashboard.vo.StrengthTrendVO;
+import com.fitness.ai.nutrition.dto.DietLogCreateDTO;
 import com.fitness.ai.nutrition.entity.DailyMacroTarget;
+import com.fitness.ai.nutrition.vo.DietLogClearVO;
 import com.fitness.ai.nutrition.entity.DietLog;
 import com.fitness.ai.nutrition.mapper.DailyMacroTargetMapper;
 import com.fitness.ai.nutrition.mapper.DietLogMapper;
@@ -209,6 +211,59 @@ class AdvancedModulesTest {
                 recommendations.size(), overloadCount, deloads.size(),
                 recommendations.stream().filter(r -> ProgressionService.STATUS_MAINTAIN.equals(r.status())).count(),
                 recommendations.stream().filter(r -> ProgressionService.STATUS_INSUFFICIENT_DATA.equals(r.status())).count());
+    }
+
+    // ==================================================================
+    // 验证点 11：清空某日饮食流水（只删该用户该日期；幂等）
+    // ==================================================================
+
+    @Test
+    void clearDietLogsOnlyRemovesTargetUserAndDate() {
+        Long userId = createDisposableUser();
+        Long otherUserId = null;
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDate yesterday = today.minusDays(1);
+            // 目标用户：今天 2 条 + 昨天 1 条
+            nutritionService.addDietLog(new DietLogCreateDTO(userId, today, "BREAKFAST",
+                    "燕麦片（干）", new BigDecimal("50"), null, null, null, null));
+            nutritionService.addDietLog(new DietLogCreateDTO(userId, today, "LUNCH",
+                    "熟米饭", new BigDecimal("200"), null, null, null, null));
+            nutritionService.addDietLog(new DietLogCreateDTO(userId, yesterday, "DINNER",
+                    "生鸡胸肉", new BigDecimal("150"), null, null, null, null));
+            // 另一个用户：今天 1 条，不应被删
+            otherUserId = createDisposableUser();
+            nutritionService.addDietLog(new DietLogCreateDTO(otherUserId, today, "BREAKFAST",
+                    "燕麦片（干）", new BigDecimal("40"), null, null, null, null));
+
+            long countToday = dietLogMapper.selectCount(Wrappers.<DietLog>lambdaQuery()
+                    .eq(DietLog::getUserId, userId).eq(DietLog::getLogDate, today));
+            assertThat(countToday).isEqualTo(2L);
+
+            DietLogClearVO cleared = nutritionService.clearDietLogs(userId, today);
+            assertThat(cleared.deletedCount()).isEqualTo(2);
+            assertThat(cleared.deletedCalories()).isPositive();
+            assertThat(cleared.consumedCaloriesAfter()).isZero();
+            assertThat(cleared.logDate()).isEqualTo(today);
+
+            // 今天已清空、昨天保留、其他用户不受影响
+            assertThat(dietLogMapper.selectCount(Wrappers.<DietLog>lambdaQuery()
+                    .eq(DietLog::getUserId, userId).eq(DietLog::getLogDate, today))).isZero();
+            assertThat(dietLogMapper.selectCount(Wrappers.<DietLog>lambdaQuery()
+                    .eq(DietLog::getUserId, userId).eq(DietLog::getLogDate, yesterday))).isEqualTo(1L);
+            assertThat(dietLogMapper.selectCount(Wrappers.<DietLog>lambdaQuery()
+                    .eq(DietLog::getUserId, otherUserId).eq(DietLog::getLogDate, today))).isEqualTo(1L);
+
+            // 幂等：再清一次返回 0 条而不是报错
+            DietLogClearVO again = nutritionService.clearDietLogs(userId, today);
+            assertThat(again.deletedCount()).isZero();
+            log.info("[验证11] 清空今日饮食流水：{}", cleared.message());
+        } finally {
+            if (otherUserId != null) {
+                cleanup(otherUserId);
+            }
+            cleanup(userId);
+        }
     }
 
     // ==================================================================

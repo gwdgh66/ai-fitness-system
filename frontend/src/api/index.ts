@@ -11,6 +11,7 @@ import type {
   DailyNutritionSummaryVO,
   DemoSeedResultVO,
   DietLog,
+  DietLogClearVO,
   DietLogCreateDTO,
   ExerciseDict,
   FoodNutritionDict,
@@ -103,6 +104,8 @@ export const nutritionApi = {
   generateTarget: (dto: MacroTargetGenerateDTO) =>
     post<DailyNutritionSummaryVO>('/nutrition/targets', dto),
   addLog: (dto: DietLogCreateDTO) => post<DietLog>('/nutrition/logs', dto),
+  /** 清空某日饮食流水：只删该用户该日期的流水，date 省略默认今天。 */
+  clearDayLogs: (userId: Id, date?: string) => del<DietLogClearVO>('/nutrition/logs', { userId, date }),
   summary: (userId: Id, date?: string) =>
     get<DailyNutritionSummaryVO>('/nutrition/summary', { userId, date }),
 }

@@ -12,6 +12,7 @@ import com.fitness.ai.nutrition.mapper.DailyMacroTargetMapper;
 import com.fitness.ai.nutrition.mapper.DietLogMapper;
 import com.fitness.ai.nutrition.mapper.FoodNutritionDictMapper;
 import com.fitness.ai.nutrition.vo.DailyNutritionSummaryVO;
+import com.fitness.ai.nutrition.vo.DietLogClearVO;
 import com.fitness.ai.profile.entity.UserProfile;
 import com.fitness.ai.profile.mapper.UserProfileMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -307,6 +308,45 @@ public class NutritionService {
     // ------------------------------------------------------------------
     // 账单汇总
     // ------------------------------------------------------------------
+
+    /**
+     * 清空某用户某一天的饮食流水（只删该用户 + 该日期）。
+     *
+     * <p>用途：开始记录真实饮食前，把演示数据或试录数据清掉。护栏：</p>
+     * <ol>
+     *   <li>用户必须存在（{@code requireProfile}）；</li>
+     *   <li><b>只删 diet_log</b>，不碰宏量目标、不碰训练数据；</li>
+     *   <li>删除条件同时包含 userId 与 logDate，绝不跨用户、绝不跨日期；</li>
+     *   <li>该日期本来就没有流水时，返回 0 条而不是报错（幂等，便于前端反复点击）。</li>
+     * </ol>
+     */
+    @Transactional
+    public DietLogClearVO clearDietLogs(Long userId, LocalDate date) {
+        requireProfile(userId);
+        LocalDate targetDate = date == null ? LocalDate.now() : date;
+        List<DietLog> rows = dietLogMapper.selectList(Wrappers.<DietLog>lambdaQuery()
+                .eq(DietLog::getUserId, userId)
+                .eq(DietLog::getLogDate, targetDate));
+        if (rows.isEmpty()) {
+            log.info("用户 {} 在 {} 没有饮食流水，清空操作无副作用", userId, targetDate);
+            return new DietLogClearVO(userId, targetDate, 0, 0, 0,
+                    targetDate + " 没有饮食流水，无需清理。");
+        }
+        int deletedCalories = rows.stream()
+                .map(DietLog::getCalories)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        dietLogMapper.delete(Wrappers.<DietLog>lambdaQuery()
+                .eq(DietLog::getUserId, userId)
+                .eq(DietLog::getLogDate, targetDate));
+        int consumedAfter = summary(userId, targetDate).consumedCalories();
+        log.info("用户 {} 清空 {} 的饮食流水：删除 {} 条（合计 {} kcal），清空后已摄入 {} kcal",
+                userId, targetDate, rows.size(), deletedCalories, consumedAfter);
+        return new DietLogClearVO(userId, targetDate, rows.size(), deletedCalories, consumedAfter,
+                "已清空 " + targetDate + " 的饮食流水：删除 " + rows.size() + " 条（合计 "
+                        + deletedCalories + " kcal），现在该日已摄入 " + consumedAfter + " kcal。");
+    }
 
     @Transactional(readOnly = true)
     public DailyNutritionSummaryVO summary(Long userId, LocalDate date) {

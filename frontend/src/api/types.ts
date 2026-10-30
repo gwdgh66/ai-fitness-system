@@ -615,6 +615,19 @@ export interface AiPlanGenerationResultVO {
 }
 
 /** POST /api/ai/food-estimate —— AI 估算自定义食物营养（建议值，不落库）。 */
+/** DELETE /api/nutrition/logs 的结果（清空某日饮食流水）。 */
+export interface DietLogClearVO {
+  userId: Id
+  logDate: string
+  /** 实际删除的流水条数 */
+  deletedCount: number
+  /** 被删除流水合计热量（kcal） */
+  deletedCalories: number
+  /** 清空后该日剩余已摄入热量 */
+  consumedCaloriesAfter: number
+  message: string
+}
+
 export interface FoodNutritionEstimateRequest {
   userId: Id
   foodName: string
