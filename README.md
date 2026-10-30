@@ -354,6 +354,4 @@ git status --short                                                       # 期�
 
 ---
 
-## 📄 License
-
 暂未附带开源许可证。若希望他人可自由使用/修改，建议补充 `LICENSE`（MIT 或 Apache-2.0）。
