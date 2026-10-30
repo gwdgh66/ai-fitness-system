@@ -8,6 +8,10 @@ import com.fitness.ai.ai.service.AiWorkoutPlannerService;
 import com.fitness.ai.ai.vo.AiPlanGenerationResultVO;
 import com.fitness.ai.dashboard.service.DashboardService;
 import com.fitness.ai.dashboard.vo.DemoSeedResultVO;
+import com.fitness.ai.profile.dto.InjuryTagCreateDTO;
+import com.fitness.ai.profile.entity.UserInjuryTag;
+import com.fitness.ai.profile.service.ProfileService;
+import com.fitness.ai.profile.vo.UserDigitalTwinVO;
 import com.fitness.ai.workout.entity.ExerciseDict;
 import com.fitness.ai.workout.entity.WorkoutPlanItem;
 import com.fitness.ai.workout.mapper.ExerciseDictMapper;
@@ -17,6 +21,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,6 +46,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RagAndStructuredPlanTest {
 
     private static final Long USER_ID = 1L;
+
+    @Autowired
+    private ProfileService profileService;
+
+    /**
+     * 本类用例验证「伤病护栏」，因此每个用例开始前确保左肩处于 ACTIVE。
+     *
+     * <p>不依赖「一键播种演示数据」来恢复夹具 —— 播种已改为<b>尊重用户的恢复操作</b>
+     * （不会把已标记为 RECOVERED 的伤病重新激活）。用例结束后把临时夹具恢复为
+     * RECOVERED，避免污染开发库。</p>
+     */
+    private UserInjuryTag shoulderFixture;
+
+    @BeforeEach
+    void ensureShoulderFixture() {
+        UserDigitalTwinVO twin = profileService.getDigitalTwin(USER_ID);
+        boolean alreadyActive = twin.activeInjuries() != null && twin.activeInjuries().stream()
+                .anyMatch(injury -> "LEFT_SHOULDER".equalsIgnoreCase(injury.getBodyPart()));
+        shoulderFixture = alreadyActive ? null : profileService.addInjury(USER_ID,
+                new InjuryTagCreateDTO("LEFT_SHOULDER",
+                        "卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举", "MILD"));
+    }
+
+    @AfterEach
+    void restoreShoulderFixture() {
+        if (shoulderFixture != null) {
+            profileService.updateInjuryStatus(shoulderFixture.getId(), "RECOVERED");
+            shoulderFixture = null;
+        }
+    }
 
     @Autowired
     private LocalFitnessKnowledgeRetriever retriever;

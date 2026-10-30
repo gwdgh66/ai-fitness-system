@@ -31,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.junit.jupiter.api.BeforeEach;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -50,6 +52,20 @@ class BaseVerificationIntegrationTest {
 
     /** 默认用户 */
     private static final Long USER_ID = 1L;
+
+    /**
+     * 演示夹具：本类的用例依赖「user 1 存在一条 LEFT_SHOULDER 的 ACTIVE 伤病」。
+     *
+     * <p>这里显式建好它，而不是依赖「一键播种演示数据」—— 播种已改为<b>尊重用户的恢复操作</b>
+     * （不会把已标记为 RECOVERED 的伤病重新激活），所以不能指望它来恢复夹具。
+     * {@code addInjury} 天然幂等：已有 ACTIVE 记录则更新，否则新建。
+     * 本类带 {@code @Transactional}，夹具会随测试事务一起回滚，不会污染开发库。</p>
+     */
+    @BeforeEach
+    void ensureDemoInjuryFixture() {
+        profileService.addInjury(USER_ID, new InjuryTagCreateDTO("LEFT_SHOULDER",
+                "卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举", "MILD"));
+    }
     /** 杠铃卧推（CHEST / avoid=LEFT_SHOULDER,RIGHT_SHOULDER,WRIST） */
     private static final Long BENCH_PRESS = 1L;
     /** 杠铃深蹲（LEGS / avoid=KNEE,LOWER_BACK），对仅有左肩伤病的用户 1 是安全的 */

@@ -218,6 +218,31 @@ public class ProfileService {
         return tag;
     }
 
+    /**
+     * 仅当该用户「从未有过该部位的伤病记录」时才创建，返回是否真的新建。
+     *
+     * <p>供演示数据播种使用。<b>绝不覆盖用户的恢复操作</b>：若该部位已有记录
+     * （无论 ACTIVE 还是 RECOVERED），一律保持原样返回 false。这样「一键播种演示数据」
+     * 就不会把用户刚标记为已恢复的伤病重新激活。</p>
+     */
+    @Transactional
+    public boolean ensureInjuryRecord(Long userId, InjuryTagCreateDTO dto) {
+        requireProfile(userId);
+        String bodyPart = dto.bodyPart() == null ? "" : dto.bodyPart().trim().toUpperCase(Locale.ROOT);
+        if (bodyPart.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "bodyPart 不能为空");
+        }
+        long existing = userInjuryTagMapper.selectCount(Wrappers.<UserInjuryTag>lambdaQuery()
+                .eq(UserInjuryTag::getUserId, userId)
+                .eq(UserInjuryTag::getBodyPart, bodyPart));
+        if (existing > 0) {
+            log.info("用户 {} 的 {} 已有伤病记录（{} 条），播种保持不变", userId, bodyPart, existing);
+            return false;
+        }
+        addInjury(userId, dto);
+        return true;
+    }
+
     /** 切换伤病状态：ACTIVE <-> RECOVERED。 */
     @Transactional
     public UserInjuryTag updateInjuryStatus(Long injuryId, String status) {

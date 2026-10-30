@@ -29,10 +29,18 @@ VALUES (1, '默认用户', 'MALE', 21, 178.00, 75.00, 16.00, 1763, 2733,
 
 -- ---------------------------------------------------------------------
 -- 2. 初始伤病记录（左肩轻度不适）
+--    ⚠️ 只在「该用户从未有过 LEFT_SHOULDER 记录」时插入。
+--    如果写成裸 INSERT IGNORE ... VALUES (1, ...)，那么当 id=1 这一行已被删除（例如用户
+--    把伤病标记为已恢复后又重建过记录）时，重复执行本脚本会凭空插入一条新的 ACTIVE 伤病，
+--    导致「明明已恢复，重启后又有伤」。因此改用 INSERT ... SELECT ... WHERE NOT EXISTS。
 -- ---------------------------------------------------------------------
 INSERT IGNORE INTO user_injury_tag (id, user_id, body_part, description, severity, status, created_at, updated_at)
-VALUES (1, 1, 'LEFT_SHOULDER', '卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举',
-        'MILD', 'ACTIVE', NOW(), NOW());
+SELECT 1, 1, 'LEFT_SHOULDER', '卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举',
+       'MILD', 'ACTIVE', NOW(), NOW()
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM user_injury_tag WHERE user_id = 1 AND body_part = 'LEFT_SHOULDER'
+);
 
 -- ---------------------------------------------------------------------
 -- 3. 内置标准动作库（27 个，覆盖胸 / 背 / 腿 / 肩 / 手臂 / 核心）

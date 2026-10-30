@@ -433,23 +433,25 @@ public class DashboardService {
             }
         }
 
-        // 5) 确保演示伤病夹具处于 ACTIVE：整套「避开伤病」的演示（安全动作过滤、模板跳槽位、
-//    排课白名单、护栏拦截）都依赖它。addInjury 天然幂等：已有 ACTIVE 记录则更新描述，否则新建。
-        boolean hadActiveShoulder = (twin.activeInjuries() == null ? List.<UserInjuryTag>of() : twin.activeInjuries())
+        // 5) 演示伤病夹具：只在「该用户从未有过 LEFT_SHOULDER 记录」时补一条，
+//    绝不覆盖用户的恢复操作 —— 否则用户刚标记为已恢复的伤病会被播种重新激活。
+        //    （早先的实现是无条件 addInjury，已修复；见 ProfileService.ensureInjuryRecord）
+        boolean injuryCreated = profileService.ensureInjuryRecord(userId, new InjuryTagCreateDTO("LEFT_SHOULDER",
+                "卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举", "MILD"));
+        boolean shoulderActive = (twin.activeInjuries() == null ? List.<UserInjuryTag>of() : twin.activeInjuries())
                 .stream()
                 .anyMatch(injury -> "LEFT_SHOULDER".equalsIgnoreCase(injury.getBodyPart())
                         && "ACTIVE".equalsIgnoreCase(injury.getStatus()));
-        profileService.addInjury(userId, new InjuryTagCreateDTO("LEFT_SHOULDER",
-                "卧推与推举时左肩前侧有轻微不适，无活动受限，暂不建议大重量过头推举", "MILD"));
-        boolean injuryEnsured = !hadActiveShoulder;
 
         String note = "已清理旧流水并重建：课表 " + applied.itemCount() + " 个动作（跳过 "
                 + applied.skippedSlots().size() + " 个伤病冲突槽位）、训练打卡 " + workoutLogs
                 + " 条、饮食打卡 " + dietLogs + " 条、营养目标 " + macroTargets + " 天。"
                 + "其中「弯举」类动作刻意记录了高 RPE 疲劳样本，用于覆盖 DELOAD_NEEDED 分支。"
-                + (injuryEnsured
-                        ? "另已恢复演示伤病标签 LEFT_SHOULDER（ACTIVE）——伤病护栏演示依赖它处于活跃状态。"
-                        : "演示伤病标签 LEFT_SHOULDER 已处于 ACTIVE。");
+                + (injuryCreated
+                        ? "另已补建演示伤病标签 LEFT_SHOULDER（ACTIVE）。"
+                        : shoulderActive
+                                ? "演示伤病标签 LEFT_SHOULDER 保持 ACTIVE（未改动）。"
+                                : "演示伤病标签 LEFT_SHOULDER 已被标记为恢复，播种不会重新激活它。");
         log.info("[演示播种] 用户 {} 完成：{}", userId, note);
         return new DemoSeedResultVO(userId, DEMO_DAYS, from, today, plan.id(), plan.planName(),
                 applied.itemCount(), workoutLogs, dietLogs, macroTargets, note);

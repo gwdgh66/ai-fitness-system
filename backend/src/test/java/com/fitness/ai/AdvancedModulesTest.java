@@ -119,6 +119,9 @@ class AdvancedModulesTest {
 
     @Test
     void demoSeedThenAllDashboardChartsArePopulated() {
+        long activeInjuriesBefore = userInjuryTagMapper.selectCount(Wrappers.<UserInjuryTag>lambdaQuery()
+                .eq(UserInjuryTag::getUserId, DEMO_USER_ID)
+                .eq(UserInjuryTag::getStatus, "ACTIVE"));
         DemoSeedResultVO seed = dashboardService.demoSeed(DEMO_USER_ID);
         log.info("[验证1] 播种结果：课表 {}（{} 个动作）训练打卡 {} 条 饮食打卡 {} 条 营养目标 {} 天",
                 seed.planName(), seed.planItems(), seed.workoutLogs(), seed.dietLogs(), seed.macroTargets());
@@ -133,9 +136,14 @@ class AdvancedModulesTest {
         assertThat(overview.totalVolumeLast30Days()).isGreaterThan(BigDecimal.ZERO);
         assertThat(overview.workoutLogCountLast30Days()).isGreaterThan(0);
         assertThat(overview.plannedTrainingDaysThisWeek()).isGreaterThan(0);
-        // 播种会确保演示伤病 LEFT_SHOULDER 处于 ACTIVE（护栏演示的夹具）。
-        // 用 >=1 而非 ==1：用户可能另外登记过其它部位的伤病，那不应让本用例失败。
-        assertThat(overview.activeInjuries()).isGreaterThanOrEqualTo(1);
+        // 播种不得改变伤病状态：用户可能已经把左肩标记为 RECOVERED，
+        // 播种只在「从未有过该部位记录」时才补建，绝不能把已恢复的伤病重新激活。
+        long activeInjuriesAfter = userInjuryTagMapper.selectCount(Wrappers.<UserInjuryTag>lambdaQuery()
+                .eq(UserInjuryTag::getUserId, DEMO_USER_ID)
+                .eq(UserInjuryTag::getStatus, "ACTIVE"));
+        assertThat(activeInjuriesAfter)
+                .as("播种前后活跃伤病数量必须一致（不得复活用户已标记恢复的伤病）")
+                .isEqualTo(activeInjuriesBefore);
         log.info("[验证1] 指标卡：体重={}kg BMR={} TDEE={} 今日摄入={}/{} kcal 本周完成={}/{} 天 活跃伤病={} 近30天容量={}kg（{} 条打卡）",
                 overview.weightKg(), overview.bmr(), overview.tdee(), overview.consumedCaloriesToday(),
                 overview.targetCaloriesToday(), overview.completedWorkoutsThisWeek(),
