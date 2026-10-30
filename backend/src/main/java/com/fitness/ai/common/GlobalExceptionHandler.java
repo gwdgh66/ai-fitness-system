@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -74,6 +75,21 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleMissingParameter(MissingServletRequestParameterException ex) {
         return Result.fail(ErrorCode.BAD_REQUEST, "缺少必填参数: " + ex.getParameterName());
+    }
+
+    /**
+     * 路径变量 / 查询参数类型转换失败（例如 /api/profile/abc、days=abc、date=2026-13-45）。
+     *
+     * <p>这类异常原本会落到兜底的 {@code Exception} 分支返回 500，属于把「调用方传错了值」
+     * 误报成「服务端故障」。这里显式转成 400，并说明期望的类型与收到的值。</p>
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String expected = ex.getRequiredType() == null ? "合法类型" : ex.getRequiredType().getSimpleName();
+        log.warn("参数类型转换失败: name={}, value={}, expected={}", ex.getName(), ex.getValue(), expected);
+        return Result.fail(ErrorCode.BAD_REQUEST,
+                "参数[" + ex.getName() + "]类型不合法，期望 " + expected + "，实际值=" + ex.getValue());
     }
 
     /** 请求体格式非法（JSON 解析失败）。 */

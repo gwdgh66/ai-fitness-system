@@ -580,6 +580,20 @@ public class WorkoutService {
     @Transactional
     public WorkoutLog logWorkout(WorkoutLogCreateDTO dto) {
         requireProfile(dto.userId());
+        // planItemId 是「软引用」：允许为空（散记打卡），但一旦传了就必须真实存在且属于当前用户，
+        // 否则会写入指向不存在明细的孤儿记录 —— 这类记录永远不参与双渐进统计，只会污染账单。
+        if (dto.planItemId() != null) {
+            WorkoutPlanItem planItem = workoutPlanItemMapper.selectById(dto.planItemId());
+            if (planItem == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND,
+                        "课表明细不存在：planItemId=" + dto.planItemId()
+                                + "，请先查询当前课表 /api/workout/plans/active");
+            }
+            if (!dto.userId().equals(planItem.getUserId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN,
+                        "课表明细 " + dto.planItemId() + " 不属于用户 " + dto.userId());
+            }
+        }
         ExerciseDict exercise = requireExercise(dto.exerciseId());
         validateSets(dto.actualSets(), exercise.getName());
         validateReps(dto.actualReps(), exercise.getName());

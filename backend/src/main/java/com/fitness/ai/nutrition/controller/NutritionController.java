@@ -56,11 +56,12 @@ public class NutritionController {
         return Result.success(nutritionService.addDietLog(dto));
     }
 
-    @Operation(summary = "查询每日营养账单汇总", description = "返回目标值、已摄入、剩余缺口与流水明细")
+    @Operation(summary = "查询每日营养账单汇总", description = "返回目标值、已摄入、剩余缺口与流水明细；date 省略时默认今天")
     @GetMapping("/summary")
     public Result<DailyNutritionSummaryVO> summary(
             @RequestParam Long userId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return Result.success(nutritionService.summary(userId, date));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        // 与 AI 工具 getDailyNutritionSummary 的行为保持一致：不传日期即查今天
+        return Result.success(nutritionService.summary(userId, date == null ? LocalDate.now() : date));
     }
 }

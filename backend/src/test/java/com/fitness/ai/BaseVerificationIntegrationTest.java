@@ -95,8 +95,11 @@ class BaseVerificationIntegrationTest {
         assertThat(twin.fitnessGoal()).isEqualTo("MUSCLE_GAIN");
         assertThat(twin.equipmentEnv()).isEqualTo("GYM");
         assertThat(twin.createdAt()).isNotNull();
-        assertThat(twin.activeInjuries()).hasSize(1);
-        assertThat(twin.activeInjuries().get(0).getBodyPart()).isEqualTo("LEFT_SHOULDER");
+        // 演示夹具：user 1 至少有一条 LEFT_SHOULDER 的 ACTIVE 伤病。
+        // 这里不断言「恰好 1 条」—— 页面上再登记其它部位伤病属于正常业务操作，
+        // 不应让本用例失败（否则用例会把用户的正常操作当成回归）。
+        assertThat(twin.activeInjuries()).isNotEmpty();
+        assertThat(twin.activeInjuries()).anyMatch(injury -> "LEFT_SHOULDER".equals(injury.getBodyPart()));
         log.info("[验证1] 数字孪生档案映射正常：nickname={} height_cm={} weight_kg={} bmr={} tdee={} ACTIVE伤病={}",
                 twin.nickname(), twin.heightCm(), twin.weightKg(), twin.bmr(), twin.tdee(),
                 twin.activeInjuries().size());
