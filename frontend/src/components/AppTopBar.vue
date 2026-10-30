@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { AlertTriangle, DatabaseZap, Loader2, RefreshCw } from 'lucide-vue-next'
 import StatusChip from '@/components/StatusChip.vue'
+import ClearTodayDietButton from '@/components/ClearTodayDietButton.vue'
 import { appStore } from '@/stores/appStore'
 import { bodyPartLabel, severityLabel } from '@/theme/tokens'
 import { formatClock, toIsoDate } from '@/utils/format'
@@ -18,6 +19,13 @@ const today = computed(() => {
   const [, month, day] = iso.split('-')
   return `${Number(month)}月${Number(day)}日`
 })
+/** 供「清空今日饮食流水」使用的 ISO 日期（yyyy-MM-dd） */
+const todayIso = computed(() => toIsoDate(new Date()))
+
+/** 清空成功后让全站重新拉数据（看板/饮食页都跟着刷新） */
+function onDietCleared(): void {
+  state.refreshToken += 1
+}
 </script>
 
 <template>
@@ -41,6 +49,14 @@ const today = computed(() => {
         <RefreshCw :size="12" :stroke-width="2" aria-hidden="true" />
         更新于 {{ freshness }}
       </span>
+
+      <!-- 清空今日饮食流水：全局可用，避免用户找不到入口 -->
+      <ClearTodayDietButton
+        :user-id="state.userId"
+        :date="todayIso"
+        compact
+        @cleared="onDietCleared"
+      />
 
       <button
         type="button"

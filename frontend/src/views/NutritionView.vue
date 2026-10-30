@@ -9,11 +9,10 @@ import {
   Search,
   ShieldAlert,
   Sparkles,
-  Trash2,
   Utensils,
 } from 'lucide-vue-next'
-import AppModal from '@/components/AppModal.vue'
 import BentoTile from '@/components/BentoTile.vue'
+import ClearTodayDietButton from '@/components/ClearTodayDietButton.vue'
 import MealComposer from '@/components/MealComposer.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import { catalogApi, nutritionApi } from '@/api'
@@ -148,31 +147,13 @@ async function refreshSummary(): Promise<void> {
 
 // ------------------------------------------------------------------
 // 清空今日饮食流水（开始记真实饮食前，把演示数据/试录数据清干净）
+//   按钮与确认弹窗都封装在 ClearTodayDietButton 里，导航栏复用同一组件
 // ------------------------------------------------------------------
-
-const clearOpen = ref(false)
-const clearing = ref(false)
 
 const todayLogCount = computed(() => (summary.value?.logs ?? []).length)
 const todayLogCalories = computed(() =>
   (summary.value?.logs ?? []).reduce((sum, item) => sum + (item.calories ?? 0), 0),
 )
-
-async function confirmClearToday(): Promise<void> {
-  if (clearing.value) return
-  clearing.value = true
-  try {
-    // 只传 userId + today：服务端同时按 userId 与 logDate 过滤，不会碰到其它日期/其它用户
-    const result = await nutritionApi.clearDayLogs(state.userId, today)
-    appStore.pushToast('success', `已清空 ${result.logDate} 的饮食流水`, result.message)
-    clearOpen.value = false
-    await refreshSummary()
-  } catch (error) {
-    appStore.pushToast('error', '清空失败', toErrorMessage(error))
-  } finally {
-    clearing.value = false
-  }
-}
 
 async function loadAll(): Promise<void> {
   loading.value = true
@@ -580,16 +561,13 @@ async function logPickedFood(): Promise<void> {
       <template #action>
         <div class="flex flex-wrap items-center gap-2">
           <StatusChip tone="acid">合计 {{ formatInt(summary?.consumedCalories) }} kcal</StatusChip>
-          <button
-            type="button"
-            class="chip cursor-pointer border-hairline text-ink-secondary transition duration-200 ease-kinetic hover:border-signal-coral/50 hover:text-signal-coral disabled:cursor-not-allowed disabled:opacity-40"
-            :disabled="todayLogCount === 0"
-            :title="todayLogCount === 0 ? '今天还没有饮食流水' : `清空 ${today} 的 ${todayLogCount} 条流水`"
-            @click="clearOpen = true"
-          >
-            <Trash2 :size="12" :stroke-width="2.2" aria-hidden="true" />
-            清空今日流水
-          </button>
+          <ClearTodayDietButton
+            :user-id="state.userId"
+            :date="today"
+            :log-count="todayLogCount"
+            :log-calories="todayLogCalories"
+            @cleared="refreshSummary"
+          />
         </div>
       </template>
 
@@ -634,56 +612,6 @@ async function logPickedFood(): Promise<void> {
       @done="onComposerDone"
     />
 
-    <!-- 清空今日饮食流水：二次确认 -->
-    <AppModal
-      :open="clearOpen"
-      title="清空今日饮食流水"
-      hint="只删当前用户、今天这一天的饮食打卡；宏量目标与训练数据都不受影响"
-      width="max-w-md"
-      @close="clearOpen = false"
-    >
-      <div class="space-y-4">
-        <div class="rounded-chip border border-signal-coral/45 bg-signal-coral/10 p-3.5">
-          <p class="flex items-center gap-1.5 text-xs font-medium text-signal-coral">
-            <ShieldAlert :size="13" :stroke-width="2.2" aria-hidden="true" />
-            即将删除 {{ todayLogCount }} 条流水
-          </p>
-          <p class="mt-1.5 text-[11px] leading-relaxed text-signal-coral/90">
-            {{ today }} · 合计 <span class="tnum">{{ formatInt(todayLogCalories) }}</span> kcal
-          </p>
-        </div>
-
-        <ul class="space-y-2 text-xs text-ink-secondary">
-          <li class="flex items-start gap-2">
-            <span class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-acid" aria-hidden="true" />
-            只删除 <span class="tnum">{{ today }}</span> 这一天、当前用户（user {{ state.userId }}）的数据
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-acid" aria-hidden="true" />
-            宏量目标、训练打卡与套餐模板都不会被删除
-          </li>
-          <li class="flex items-start gap-2 text-signal-coral">
-            <AlertTriangle :size="12" :stroke-width="2.2" class="mt-0.5 shrink-0" aria-hidden="true" />
-            删除后不可恢复（本系统没有回收站），确认后今日账单从 0 开始
-          </li>
-        </ul>
-      </div>
-
-      <template #footer>
-        <div class="flex items-center justify-end gap-2">
-          <button type="button" class="btn-ghost !min-h-[40px] !px-4 text-xs" @click="clearOpen = false">取消</button>
-          <button
-            type="button"
-            class="btn-danger-outline !min-h-[40px] !px-4 text-xs"
-            :disabled="clearing"
-            @click="confirmClearToday"
-          >
-            <Loader2 v-if="clearing" :size="13" :stroke-width="2.4" class="animate-spin" aria-hidden="true" />
-            <Trash2 v-else :size="13" :stroke-width="2.2" aria-hidden="true" />
-            {{ clearing ? '清空中…' : '确认清空今日流水' }}
-          </button>
-        </div>
-      </template>
-    </AppModal>
+    <!-- 清空今日饮食流水：按钮与二次确认都封装在 ClearTodayDietButton（导航栏复用同一组件） -->
   </div>
 </template>
